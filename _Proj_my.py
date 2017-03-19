@@ -43,24 +43,58 @@ class ProcessReview:
 	enhancers_1 = ['generally','usually']
 	enhancers_2 = ['very','too','always','primarily']
 	diminishers = ['moderately','averagely']
-	inverter	= ['not']
+	inverter	= ['not','no']
 	inverter_2	= ['never']
 
-	useful = ['JJ','JJR','JJS','RB','RBR','RBS','VB','VBD','VBG','VBN','VBP','VBZ','NN']
-
+	useful = ['JJ','JJR','JJS',							#Adjectives
+			  'RB','RBR','RBS',							#Adverbs	: comparative and superlative
+			  'VB','VBD','VBG','VBN','VBP','VBZ',		#verbs		: enjoyed etc
+			  'NN','NNS','NNP','NNPS']					#nouns
+											
+	ignore = ['no']
 	#--Functions --------------------------------------------------------
 	
 	def preprocess(self,sentence):
-		self.my_print("Preprocessing...")
+		self.my_print("\nPreprocessing...")
 		#Change Sentence to lower case
 		sentence=sentence.lower()
-		return sentence	
+		#Tokenize and remove Useless Words		But , now can not differentiate on nouns
+		sent=nltk.word_tokenize(sentence)
+		tag=nltk.pos_tag(sent)
+		
+		#for i in tag : 
+			#self.my_print(i[0]+' ',0)
+			#print(i,end=' ')
+		
+		self.my_print("\nVisualization : After removing useless words\n")
+		removed=1
+		
+		while(removed==1):	#cause tag.remove() shifts the elements ahead, 
+							#but for loop does not rewind.			
+			removed=0
+			for i in tag:
+				if i[1] not in self.useful :
+					if i[0] not in self.ignore:
+						tag.remove(i)
+						removed=1
+		
+		for i in tag : 
+			self.my_print(i[0]+' ',0)
+			#print(i[0],end=' ')
+		self.my_print('\n')
+		
+		return sentence
 
 	def removeStops(self,tag):
 		
-		for i in tag :
-			if i[1] not in self.useful:
-				tag.remove(i)
+		removed=1
+		while(removed==1):
+			removed=0
+			for i in tag:
+				if i[1] not in self.useful :
+					if i[0] not in self.ignore:
+						tag.remove(i)
+						removed=1
 		
 	def my_print(self,x,NewLine=1,sign=0):
 		if(debug == '1'):
@@ -84,13 +118,13 @@ class ProcessReview:
 	def scoreSent(self,sent):			#operate Sentence wise
 		modifier=0;
 		multiplier=1;
-		sent=nltk.word_tokenize(sent)
+		sent=nltk.word_tokenize(sent)				#Not possible in preprocess cause will remove '.'
 		tagged=nltk.pos_tag(sent)
 	
-		self.my_print(tagged)
+		#self.my_print(tagged)
 	
-		self.my_print("Removed other words")		#Must do after tagging
-		self.removeStops(tagged)			#here cause sentences need to be tagged.
+		#self.my_print("Removed other words")		#Must do after tagging
+		self.removeStops(tagged)					#here cause SENTENCES need to be tagged.
 		self.my_print(tagged)
 	
 		global score
@@ -98,7 +132,9 @@ class ProcessReview:
 		init_score=self.score
 	
 		for i in tagged :
-			if i[1] in 'NN':
+			if i[1] in 'NN'and noun_present_flag==0 and i[0] != 'i':
+														#if not first noun in the sentence
+														#useful for eg when i , problem in same sentence as problem is considered a noun. 
 				noun=i[0]
 				noun_present_flag=1
 				self.my_print("     ",0)
@@ -143,23 +179,23 @@ class ProcessReview:
 		self.my_print(sc)
 	
 		if(self.score > 0):
-			print("Positive Review")
+			self.my_print("Positive Review")
 		elif(self.score < 0):
-			print("Negative Review")
+			self.my_print("Negative Review")
 		else:
-			print("Neutral/Can not be determined")
+			self.my_print("Neutral/Can not be determined")
 
 	def print_dict(self,x):
 		for i in x.keys():
 			if(i==""):
 				continue
-			print(i+" : ",end='')
+			self.my_print(i+" : ",0)
 			if(x[i] > 0):
-				print("Positive Review")
+				self.my_print("Positive Review")
 			elif(x[i] < 0):
-				print("Negative Review")
+				self.my_print("Negative Review")
 			else:
-				print("Neutral/Can not be determined")
+				self.my_print("Neutral/Can not be determined")
 
 	def getSentiment(self,review):
 		
@@ -168,21 +204,23 @@ class ProcessReview:
 		for sent in sentences :				#Score Each sentence.
 			self.scoreSent(sent)
 		
-		#self.printAnswer(self.score)
+		self.printAnswer(self.score)
 		self.my_print("\n")
 
-		#self.print_dict(noun_dict)
-		#print(noun_dict)
+		self.print_dict(noun_dict)
+		self.my_print(noun_dict)
 		
 		return {"OverallScore":self.score , "NounScore":noun_dict}	#return dictionary
 		
 #--Main---------------------------------------------------------------
 
 init()
-review=prompt()
+review=prompt()									#get review
+
 pro = ProcessReview()							#Create Object
 result=pro.getSentiment(review)	
 
 print("\n\n\nInMain")
 print(result["OverallScore"])
 print(result["NounScore"])
+print(result)
