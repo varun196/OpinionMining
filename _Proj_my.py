@@ -1,15 +1,17 @@
 from __future__ import print_function
 import nltk
-import unicodedata	#For making unicode table of punctuations for translate function in preprocess
-import sys			#Ditto unicodedata
 
 #--Global------------------------------
 score=0
 debug=0
+global noun_dict
+noun_dict={"":0}	
+
 enhancers_1 = ['generally','usually']
-enhancers_2 = ['never','very','too','always','primarily']
+enhancers_2 = ['very','too','always','primarily']
 diminishers = ['moderately','averagely']
 inverter	= ['not']
+inverter_2	= ['never']
 #--Functions---------------------------------------------------------
 def preprocess(sentence):
 	my_print("Preprocessing...")
@@ -71,13 +73,24 @@ def scoreSent(sent):			#operate Sentence wise
 	sent=nltk.word_tokenize(sent)
 	tagged=nltk.pos_tag(sent)
 	
-	my_print(tagged,0)
+	my_print(tagged)
 	
 	global score
+	noun_present_flag=0
+	init_score=score
+	
 	for i in tagged :
-		if i[0] in inverter:
+		if i[1] in 'NN':
+			noun=i[0]
+			noun_present_flag=1
+			my_print("     ",0)
+		elif i[0] in inverter:
 			my_print("*    ",0)
 			multiplier=-1;
+		elif i[0] in inverter_2:
+			my_print("*    ",0)
+			multiplier=-1;
+			modifier=2;
 		elif i[0] in pos_words:
 			score=score+((2+modifier)*multiplier)
 			my_print(2+modifier,0,findSign((2+modifier)*multiplier))
@@ -99,9 +112,17 @@ def scoreSent(sent):			#operate Sentence wise
 		else:
 			my_print("     ",0)
 		my_print(i[0])
-def printAnswer():
-	my_print("Score :")
-	my_print(score)
+		
+		global noun_dict
+		if(noun_present_flag==1):
+			if((noun in noun_dict) == False):
+				noun_dict[noun]=(score-init_score)	#Add new key-value pair to dict
+			else:
+				noun_dict[noun]+=(score-init_score)	#Modify value of pair to dict
+			
+def printAnswer(sc):
+	my_print("Score :",0)
+	my_print(sc)
 
 	if(score > 0):
 		print("Positive Review")
@@ -109,6 +130,18 @@ def printAnswer():
 		print("Negative Review")
 	else:
 		print("Neutral/Can not be determined")
+
+def print_dict(x):
+	for i in x.keys():
+		if(i==""):
+			continue
+		print(i+" : ",end='')
+		if(x[i] > 0):
+			print("Positive Review")
+		elif(x[i] < 0):
+			print("Negative Review")
+		else:
+			print("Neutral/Can not be determined")
 
 #--Main---------------------------------------------------------------
 
@@ -121,4 +154,9 @@ sentences=review.split('.')
 for sent in sentences :		#Score Each sentence.
 	scoreSent(sent)
 	
-printAnswer()
+printAnswer(score)
+my_print("\n")
+
+print_dict(noun_dict)
+print(noun_dict)
+	
