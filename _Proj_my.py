@@ -9,14 +9,19 @@ debug=0
 enhancers_1 = ['generally','usually']
 enhancers_2 = ['never','very','too','always','primarily']
 diminishers = ['moderately','averagely']
+inverter	= ['not']
 #--Functions---------------------------------------------------------
 def preprocess(sentence):
 	my_print("Preprocessing...")
 	#Change Sentence to lower case
 	sentence=sentence.lower()
 	return sentence	
-def my_print(x,NewLine=1):
+def my_print(x,NewLine=1,sign=0):
 	if(debug == '1'):
+		if(sign == 1):
+			print('+  ',end='')
+		elif(sign==-1):
+			print('-  ',end='')
 		if(NewLine == 1):
 			print(x)
 		else:
@@ -45,6 +50,14 @@ def init():						#Bring in lists , Ask for debug
 	pos_words=pos_words.split('\n')
 	neg_words=neg_words.split('\n')
 	
+def findSign(x):
+	if(x>0):
+		return 1
+	elif(x<0):
+		return -1
+	else:
+		return 0
+	
 def prompt():					#Ask Review
 	#ORIGINAL = """This is a good movie. This is not bad. This is too great and awesome. Worse. best."""
 	#print("\nSentence is:")
@@ -54,23 +67,29 @@ def prompt():					#Ask Review
 	return ORIGINAL
 def scoreSent(sent):			#operate Sentence wise
 	modifier=0;
+	multiplier=1;
 	sent=nltk.word_tokenize(sent)
 	tagged=nltk.pos_tag(sent)
 	
+	my_print(tagged,0)
+	
 	global score
 	for i in tagged :
-		if i[0] in pos_words:
-			score=score+2+modifier
-			my_print("+  ",0)
-			my_print(2+modifier,0)
+		if i[0] in inverter:
+			my_print("*    ",0)
+			multiplier=-1;
+		elif i[0] in pos_words:
+			score=score+((2+modifier)*multiplier)
+			my_print(2+modifier,0,findSign((2+modifier)*multiplier))
 			my_print(" ",0)
 			modifier=0
+			multiplier=1
 		elif i[0] in neg_words:
-			score=score-2-modifier
-			my_print("- ",0)
-			my_print(-2-modifier,0)
+			score=(score+(-2-modifier)*multiplier)
+			my_print(abs(-2-modifier),0,findSign((-2-modifier)*multiplier))
 			my_print(" ",0)
 			modifier=0
+			multiplier=1
 		elif i[0] in enhancers_1:
 			modifier=1
 			my_print("1    ",0)
